@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -29,6 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not initialize infrastructure: %v", err)
 	}
+	fmt.Println("🔌 Producer Connected to Valkey")
 
 	// B. Services (Dependency Injection)
 	// Strategy Pattern (FixedWindowLimiter).

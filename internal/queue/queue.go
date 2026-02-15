@@ -61,7 +61,16 @@ func (q *RedisQueue) Dequeue(ctx context.Context) (*Task, error) {
 	// BRPop → Redis command to pop an item from the tail of a list
 	// 0 → block indefinitely if the list is empty (wait until a task arrives)
 	// "webhook_queue" → name of the list
-	result, err := q.rdb.BRPop(ctx, 0, "webhook_queue").Result()
+	// result, err := q.rdb.BRPop(ctx, 0, "webhook_queue").Result()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// FIX: Change 0 to 1 * time.Second
+	// This creates a "Heartbeat". Every 1 second, the Redis command will
+	// "timeout" and return a redis.Nil error if no task is found.
+	// This gives our worker a chance to check ctx.Done() and exit cleanly.
+	result, err := q.rdb.BRPop(ctx, 1*time.Second, "webhook_queue").Result()
 	if err != nil {
 		return nil, err
 	}
