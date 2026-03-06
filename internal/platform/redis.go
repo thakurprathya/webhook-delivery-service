@@ -11,17 +11,20 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// --------------------------------------------------------------- SINGLETON PATTERN ---------------------------------------------------------------
-
 // 1. The Singleton Instance (Private)
+// Singleton Pattern: Private package-level variables ensure only one instance exists.
+// Encapsulation: These are unexported (lowercase), hiding implementation details from consumers.
 var (
 	redisInstance *redis.Client
 	once          sync.Once // This is the guard. It has a boolean flag inside (internally) that flips from false to true after the function runs. It is thread-safe (mutex locked).
 	initErr       error
 )
 
+// Singleton Accessor: This is the single global access point to the Redis instance.
+// Information Hiding Principle: Callers never see the raw redis.Options or connection logic.
 func GetRedisClient() (*redis.Client, error) {
 	// 2. sync.Once ensures the function inside is executed ONLY ONCE.
+	// Thread-Safety: sync.Once uses an internal mutex + atomic flag.
 	// Even if 100 goroutines call GetRedisClient() simultaneously,
 	// this block runs for the first one, and others wait until it's done.
 	once.Do(func() {
@@ -41,6 +44,7 @@ func GetRedisClient() (*redis.Client, error) {
 			var err error
 			db, err = strconv.Atoi(dbStr)
 			if err != nil {
+				// Fail Fast Principle: Return immediately on invalid config rather than proceeding with a bad state.
 				initErr = fmt.Errorf("invalid VALKEY_DB: %w", err)
 				return
 			}
@@ -53,6 +57,7 @@ func GetRedisClient() (*redis.Client, error) {
 			DB:   db,
 		})
 
+		// Fail Fast Principle: Verify connection health at startup. Better to crash immediately than serve broken requests silently.
 		// C. Verify Connection (Fail Fast)
 		// PING ensures the server is actually reachable.
 		if _, err := rdb.Ping(context.Background()).Result(); err != nil {
